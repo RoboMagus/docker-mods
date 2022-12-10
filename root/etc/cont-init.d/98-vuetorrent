@@ -1,0 +1,43 @@
+
+#!/usr/bin/with-contenv bash
+
+echo "Ready to install VueTorrent UI..."
+
+FILE=/app/vuetorrent/public/index.html
+if [ ! -f "$FILE" ]; then
+
+        mkdir -p /app/vuetorrent && cd /app/vuetorrent
+
+        if [[ -z "${VUETORRENT_VERSION}" ]]; then
+                echo "Downloading VueTorrent: Latest"
+                wget -q "https://github.com/WDaan/VueTorrent/releases/latest/download/vuetorrent.zip" || ( echo "Vuetorrent 'latest' download failed"; exit -1)
+        else
+                echo "Downloading VueTorrent version ${VUETORRENT_VERSION}"
+                wget -q "https://github.com/WDaan/VueTorrent/releases/download/${VUETORRENT_VERSION}/vuetorrent.zip" || ( echo "Vuetorrent '${VUETORRENT_VERSION}' download failed"; exit -1)
+        fi
+        echo "Download success. Unpacking..."
+
+        unzip -q vuetorrent.zip -d /app && \
+        rm -rf vuetorrent.zip && \
+        chown -R abc:users /app && \
+        echo "DONE!"
+
+else
+
+        echo "VueTorrent already installed..."
+
+fi
+
+# For clean setup, set alternative UI in config:
+CONF_DIR="/config/qBittorrent"
+CONF_FILE="${CONF_DIR}/qBittorrent.conf"
+if [ ! -f "$CONF_FILE" ]; then
+
+        echo "No qBittorrent config file found. Creating bare config file to use VueTorrent UI"
+        mkdir -p $CONF_DIR
+
+        echo "[Preferences]"                     >> $CONF_FILE
+        echo "WebUI\AlternativeUIEnabled=true"   >> $CONF_FILE
+        echo "WebUI\RootFolder=/app/vuetorrent"  >> $CONF_FILE
+
+fi
