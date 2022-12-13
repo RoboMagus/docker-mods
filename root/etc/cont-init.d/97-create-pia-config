@@ -1,0 +1,39 @@
+#!/usr/bin/with-contenv bash
+
+# Default values for basic PIA Script input
+: "${PIA_DNS=true}"
+: "${PIA_PF=false}"
+
+# Default git reference to use
+# Can be a tag (eg. v1.0.0), hash (eg. 742a492), or branch name (eg. master)
+: "${PIA_GIT_REF=master}"
+
+PIA_SCRIPTS_PATH=/pia-scripts
+PIA_FOSS_GIT_URL=https://github.com/pia-foss/manual-connections
+
+if [ ! -d "${PIA_SCRIPTS_PATH}" ] 
+then
+  echo ">> Cloning Scripts from ${PIA_FOSS_GIT_URL}"
+  git clone ${PIA_FOSS_GIT_URL} ${PIA_SCRIPTS_PATH}
+fi
+
+echo ">> Checkout ref ${PIA_GIT_REF}"
+git checkout -f ${PIA_GIT_REF}
+
+
+echo ">> Running scripts to generate config..."
+VPN_PROTOCOL=wireguard \
+PIA_CONNECT=false \
+PIA_CONF_PATH=/config/wg0.conf \
+./run_setup.sh
+
+echo ">> Adding 'PostUp' & 'PreDown' to wg0.conf..."
+
+PU='PostUp = iptables -t nat -A POSTROUTING -o wg+ -j MASQUERADE'
+PD='PreDown = iptables -t nat -D POSTROUTING -o wg+ -j MASQUERADE'
+
+sed -i "/^\[Interface\].*/a ${PU}\n${PD}" /config/wg0.conf
+
+echo ">> DONE!"
+echo 
+
